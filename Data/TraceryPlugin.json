@@ -1,0 +1,13 @@
+{
+  "Author": "Prittoto Pritto",
+  "Name": "Prittoto Pritto's Tracery Plugin ♥",
+  "Punchline": "Tracery support for FF!",
+  "Description": "/trace on its own to open the UI, or add a string to interpret using the currently loaded grammar",
+  "InternalName": "TraceryPlugin",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "plugin",
+    "chat"
+  ],
+  "IconUrl": "https://ffxiv.gamerescape.com/w/images/9/97/Little_Flirt_Icon.png"
+}
