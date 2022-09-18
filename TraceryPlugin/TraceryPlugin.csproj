@@ -32,7 +32,7 @@
 
   <PropertyGroup>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-    <Product>Piss-up Plugin</Product>
+    <Product>Tracery Plugin</Product>
   </PropertyGroup>
 
   <ItemGroup>

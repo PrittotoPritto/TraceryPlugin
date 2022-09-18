@@ -1,8 +1,10 @@
 ﻿using Dalamud.Configuration;
 using Dalamud.Plugin;
 using System;
-using System.Runtime.Serialization;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
+
+using Newtonsoft.Json.Linq;
 
 namespace TraceryPlugin
 {
@@ -11,11 +13,14 @@ namespace TraceryPlugin
     {
         public int Version { get; set; } = 1;
 
-        public bool IsAlliance { get; set; } = false;
+        public JObject BaseGrammar = new JObject();
+
+        public List<KeyValuePair<string, string>> SavedItems = new List<KeyValuePair<string, string>>();
+
+        //public bool Stage;
+        //Hopefully I can give the option to just stage the results instead of posting them immediately
 
         public string SavePath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-
-        // the below exist just to make saving less cumbersome
 
         [NonSerialized]
         private DalamudPluginInterface? pluginInterface;

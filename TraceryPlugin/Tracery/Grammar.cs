@@ -173,7 +173,7 @@ namespace TraceryNet
                 }
 
                 // Get the selected rule
-                var selectedRule = Rules[matchName] ?? SaveData[matchName] ?? matchName;
+                var selectedRule = Rules.GetValue(matchName) ?? SaveData.GetValueOrDefault(matchName) ?? matchName;
             
                 // If the rule has any children then pick one at random
                 if (selectedRule.Type == JTokenType.Array)

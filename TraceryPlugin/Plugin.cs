@@ -6,6 +6,7 @@ using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Game.Gui;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -17,9 +18,9 @@ namespace TraceryPlugin
 {
     public sealed class Plugin : IDalamudPlugin
     {
-        public string Name => "PissUpPlugin";
+        public string Name => "TraceryPlugin";
 
-        private const string commandName = "/pppp";
+        private const string commandName = "/trace";
 
         [PluginService]
         public static DalamudPluginInterface DalamudPluginInterface { get; private set; }
@@ -31,26 +32,21 @@ namespace TraceryPlugin
         public static ChatGui ChatGui { get; private set; }
         [PluginService]
         public static Framework Framework { get; private set; }
-        [PluginService]
-        public static PartyList PartyList { get; private set; }
 
         public XivCommonBase Common { get; }
 
         public Configuration Configuration { get; init; }
         private PluginUI PluginUi { get; init; }
 
-        public delegate void DrawGameUI();
-        public event DrawGameUI GameUIDraw;
-
         //Running the game
-        private Task? GameSessionInProgress = null;
+        private TraceryNet.Grammar Grammar;
 
         //Outputting messages
         private bool ChatAvailable = true; //TODO: true for dev reload testing, set to false!
         private Channel<string> MessageSink;
         private struct DelayedReader
         {
-            const uint MinDelayMS = 100;
+            const uint MinDelayMS = 150;
             public DelayedReader(ChannelReader<string> Source)
             {
                 RawReader = Source;
@@ -80,19 +76,19 @@ namespace TraceryPlugin
             }
         }
         private DelayedReader MessageSource;
-        private CancellationTokenSource TaskCancellationTokenSource = new CancellationTokenSource();
 
         public Plugin()
         {
             this.Common = new XivCommonBase();
             this.Configuration = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             this.Configuration.Initialize(DalamudPluginInterface);
+            this.Grammar = new TraceryNet.Grammar(this.Configuration.BaseGrammar);
             // you might normally want to embed resources and load them from the manifest stream
-            this.PluginUi = new PluginUI(this.Configuration);
+            this.PluginUi = new PluginUI(this.Configuration, this);
 
             CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
             {
-                HelpMessage = "Opens the Piss-up Plugin GUI. More commands may come later"
+                HelpMessage = "Opens the Tracery Plugin GUI, executes a subcommand, or with another text string flattens it."
             });
 
             DalamudPluginInterface.UiBuilder.Draw += DrawUI;
@@ -107,25 +103,8 @@ namespace TraceryPlugin
 
         }
 
-        private void ClearTask(bool DisposingPlugin = false)
-        {
-            if (this.GameSessionInProgress != null)
-            {
-                TaskCancellationTokenSource.Cancel();
-                this.GameSessionInProgress.Wait();
-                this.GameSessionInProgress.Dispose();
-                this.GameSessionInProgress = null;
-                TaskCancellationTokenSource.Dispose();
-                if (!DisposingPlugin)
-                {
-                    TaskCancellationTokenSource = new CancellationTokenSource();
-                }
-            }
-        }
         public void Dispose()
         {
-            ClearTask(true);
-
             Framework.Update -= this.OnFrameworkUpdate;
             ClientState.Login -= this.OnLogin;
             ClientState.Logout -= this.OnLogout;
@@ -134,28 +113,50 @@ namespace TraceryPlugin
             this.PluginUi.Dispose();
         }
 
+        public void ResetGrammar()
+        {
+            this.Grammar = new TraceryNet.Grammar(this.Configuration.BaseGrammar);
+            this.Grammar.SaveData = new Dictionary<string, string>(this.Configuration.SavedItems);
+        }
+
         private void OnCommand(string command, string args)
         {
-            // in response to the slash command, just display our main ui
-            if (args.Trim().StartsWith("go", System.StringComparison.OrdinalIgnoreCase))
-            {
-                ClearTask();
-                CancellationToken TaskCancellationToken = TaskCancellationTokenSource.Token;
-                //Execute
-            }
-            else
+            // check if we've got nothing in args and show the UI
+            string trimmed = args.Trim().ToLower();
+            if (trimmed.Length == 0)
             {
                 this.PluginUi.Visible = true;
+            }
+            // check for special subcommands
+            else if (trimmed == "reset")
+            {
+                ResetGrammar();
+            }
+            // otherwise, flatten.
+            else
+            {
+                try
+                {
+                    string flattened = Grammar.Flatten(args.TrimStart());
+                    this.MessageSink.Writer.WriteAsync(flattened);
+                }
+                catch (Exception ex)
+                {
+                    string errorOutput = "/echo" + ex.ToString();
+                    this.MessageSink.Writer.WriteAsync(errorOutput);
+                }
             }
         }
         public void OnFrameworkUpdate(Framework framework1)
         {
-            if (!this.MessageSource.TryRead(out var Message) || !this.ChatAvailable)
+            if (!this.MessageSource.TryRead(out var Message) || !this.ChatAvailable) 
+            //Check availability afterwards, to clear unsendable messages
             {
                 return;
             }
             this.Common.Functions.Chat.SendMessage(Message);
         }
+
         private void OnLogin(object? sender, EventArgs args)
         {
             this.ChatAvailable = true;
@@ -164,17 +165,15 @@ namespace TraceryPlugin
         private void OnLogout(object? sender, EventArgs args)
         {
             this.ChatAvailable = false;
-            ClearTask();
         }
         private void DrawUI()
         {
             this.PluginUi.Draw();
-            GameUIDraw?.Invoke();
         }
         
         private void DrawConfigUI()
         {
-            this.PluginUi.SettingsVisible = true;
+            this.PluginUi.Visible = true;
         }
     }
 }

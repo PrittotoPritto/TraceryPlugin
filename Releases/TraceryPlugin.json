@@ -1,16 +1,16 @@
 {
   "Author": "Prittoto Pritto",
-  "Name": "Prittoto Pritto's Tracery Plugin ♥",
+  "Name": "Prittoto Pritto's Tracery Plugin",
   "InternalName": "TraceryPlugin",
   "AssemblyVersion": "1.0.0.1",
-  "Description": "/trace on its own to open the UI, or add a string to interpret using the currently loaded grammar.",
+  "Description": "/Trace to bring up the UI or give it a string to flatten. See Tracery.io for more on what it can do.",
   "ApplicableVersion": "any",
   "Tags": [
     "social",
     "chat"
   ],
-  "DalamudApiLevel": 6,
+  "DalamudApiLevel": 7,
   "LoadPriority": 0,
   "IconUrl": "https://ffxiv.gamerescape.com/w/images/9/97/Little_Flirt_Icon.png",
-  "Punchline": "Testing out the plugin system with drinking games!"
+  "Punchline": "Tracery support for FF14!"
 }

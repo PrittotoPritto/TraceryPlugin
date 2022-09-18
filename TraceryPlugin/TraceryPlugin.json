@@ -1,8 +1,8 @@
 {
   "Author": "Prittoto Pritto",
-  "Name": "Prittoto Pritto's Tracery Plugin ♥",
-  "Punchline": "Testing out the plugin system with drinking games!",
-  "Description": "/pppp to open the UI and go from there. I'll update this when there's more info.",
+  "Name": "Prittoto Pritto's Tracery Plugin",
+  "Punchline": "Tracery support for FF14!",
+  "Description": "/Trace to bring up the UI or give it a string to flatten. See Tracery.io for more on what it can do.",
   "InternalName": "TraceryPlugin",
   "ApplicableVersion": "any",
   "Tags": [
