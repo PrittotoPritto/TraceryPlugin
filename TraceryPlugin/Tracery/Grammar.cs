@@ -60,11 +60,27 @@ namespace TraceryNet
         /// Load the rules list by deserializing the source as a json object.
         /// </summary>
         /// <param name="source"></param>
-        public Grammar(string source)
+        public Grammar(string source) : this()
         {
             // Populate the rules list
-            Rules = new JObject();
             PopulateRules(source);
+        }
+
+        /// <summary>
+        /// Initialise by cloning an existing JObject.
+        /// </summary>
+        /// <param name="source"></param>
+        public Grammar(JObject source) : this()
+        {
+            Rules = (JObject)source.DeepClone();
+        }
+
+        /// <summary>
+        /// Base private initialisation.
+        /// </summary>
+        private Grammar()
+        {
+            Rules = new JObject();
 
             // Set up the function table
             ModifierLookup = new Dictionary<string, Func<string, string>>
@@ -78,7 +94,7 @@ namespace TraceryNet
                 { "ed",            Modifiers.Ed },
                 { "capitalizeAll", Modifiers.CapitalizeAll }
             };
-            
+
             // Initialize the save storage
             SaveData = new Dictionary<string, string>();
         }
@@ -163,7 +179,12 @@ namespace TraceryNet
                 if (selectedRule.Type == JTokenType.Array)
                 {
                     var index = Random.Next(0, ((JArray)selectedRule).Count);
-                    var chosen = selectedRule[index].ToString();
+                    //Prittoto Note: Modified to catch an empty array
+                    var chosen = selectedRule[index]?.ToString();
+                    if (chosen == null)
+                    {
+                        chosen = matchName;
+                    }
                     var resolved = Flatten(chosen);
 
                     resolved = ApplyModifiers(resolved, modifiers);
