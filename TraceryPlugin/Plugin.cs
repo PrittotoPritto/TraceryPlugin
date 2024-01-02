@@ -1,10 +1,8 @@
 ﻿using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using Dalamud.Game;
+using Dalamud.Plugin.Services;
 using Dalamud.Game.ClientState;
-using Dalamud.Game.ClientState.Party;
-using Dalamud.Game.Gui;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -25,13 +23,13 @@ namespace TraceryPlugin
         [PluginService]
         public static DalamudPluginInterface DalamudPluginInterface { get; private set; }
         [PluginService]
-        public static ClientState ClientState { get; private set; }
+        public static IClientState ClientState { get; private set; }
         [PluginService]
-        public static CommandManager CommandManager { get; private set; }
+        public static ICommandManager CommandManager { get; private set; }
         [PluginService]
-        public static ChatGui ChatGui { get; private set; }
+        public static IChatGui ChatGui { get; private set; }
         [PluginService]
-        public static Framework Framework { get; private set; }
+        public static IFramework Framework { get; private set; }
 
         public XivCommonBase Common { get; }
 
@@ -77,9 +75,11 @@ namespace TraceryPlugin
         }
         private DelayedReader MessageSource;
 
-        public Plugin()
+        public Plugin(
+            [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface
+        )
         {
-            this.Common = new XivCommonBase();
+            this.Common = new XivCommonBase(pluginInterface);
             this.Configuration = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             this.Configuration.Initialize(DalamudPluginInterface);
             this.Grammar = new TraceryNet.Grammar(this.Configuration.BaseGrammar);
@@ -147,7 +147,7 @@ namespace TraceryPlugin
                 }
             }
         }
-        public void OnFrameworkUpdate(Framework framework1)
+        public void OnFrameworkUpdate(IFramework framework1)
         {
             if (!this.MessageSource.TryRead(out var Message) || !this.ChatAvailable) 
             //Check availability afterwards, to clear unsendable messages
@@ -157,12 +157,12 @@ namespace TraceryPlugin
             this.Common.Functions.Chat.SendMessage(Message);
         }
 
-        private void OnLogin(object? sender, EventArgs args)
+        private void OnLogin()
         {
             this.ChatAvailable = true;
         }
 
-        private void OnLogout(object? sender, EventArgs args)
+        private void OnLogout()
         {
             this.ChatAvailable = false;
         }

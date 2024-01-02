@@ -9,8 +9,12 @@
     "social",
     "chat"
   ],
-  "DalamudApiLevel": 7,
+  "DalamudApiLevel": 9,
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
   "LoadPriority": 0,
   "IconUrl": "https://ffxiv.gamerescape.com/w/images/9/97/Little_Flirt_Icon.png",
-  "Punchline": "Tracery support for FF14!"
+  "Punchline": "Tracery support for FF14!",
+  "AcceptsFeedback": true
 }
