@@ -114,6 +114,11 @@ namespace TraceryPlugin.Windows
                 {
                     windowState.BeginLoadNew(plugin, configuration, configuration.RuleSets);
                 }
+                ImGui.SameLine();
+                if (ImGui.Button("Load Raw Grammar"))
+                {
+                    windowState.BeginLoadRaw(plugin, configuration, configuration.RuleSets);
+                }
                 //
 
                 expand = ImGui.TreeNode($"{ruleSet.Name}###ruleset{index}node");
@@ -456,6 +461,38 @@ namespace TraceryPlugin.Windows
                             if (ruleSet != null)
                             {
                                 plugin.UndoStack.AddCommand(new ReplaceRulesetCommand(index, ruleSet));
+                            }
+                        }
+                        catch (Exception E)
+                        {
+                            //TODO: Report the error
+                        }
+                    }
+                });
+            }
+
+            public void BeginLoadRaw(Plugin plugin, Configuration config, RuleSetCollection collection)
+            {
+                fileDialogManager.OpenFileDialog("Load raw grammar", ".json", (bool chosen, string path) =>
+                {
+                    if (chosen)
+                    {
+                        try
+                        {
+                            Dictionary<string, List<string>>? RawGrammar = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(File.ReadAllText(path));
+                            if (RawGrammar != null)
+                            {
+                                RuleSet ruleSet = new();
+                                ruleSet.Name = Path.GetFileNameWithoutExtension(path);
+                                foreach (string key in RawGrammar.Keys)
+                                {
+                                    Rule rule = new();
+                                    rule.Name = key;
+                                    rule.Children = RawGrammar[key];
+                                    ruleSet.Rules.Add(rule);
+                                }
+                                int index = collection.Count - 1;
+                                plugin.UndoStack.AddCommand(new InsertRulesetCommand(index, ruleSet));
                             }
                         }
                         catch (Exception E)
