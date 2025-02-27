@@ -8,9 +8,11 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using XivCommon;
 
 using TraceryNet;
+using TraceryPlugin.GrammarBuilder;
+using Dalamud.Interface.Windowing;
+using TraceryPlugin.Windows;
 
 namespace TraceryPlugin
 {
@@ -21,7 +23,7 @@ namespace TraceryPlugin
         private const string commandName = "/trace";
 
         [PluginService]
-        public static DalamudPluginInterface DalamudPluginInterface { get; private set; }
+        public static IDalamudPluginInterface PluginInterface { get; private set; }
         [PluginService]
         public static IClientState ClientState { get; private set; }
         [PluginService]
@@ -31,12 +33,17 @@ namespace TraceryPlugin
         [PluginService]
         public static IFramework Framework { get; private set; }
 
-        public XivCommonBase Common { get; }
-
         public Configuration Configuration { get; init; }
-        private PluginUI PluginUi { get; init; }
+        //private PluginUI PluginUi { get; init; }
 
-        //Running the game
+        public readonly WindowSystem WindowSystem = new("PPTraceryPlugin");
+        private Windows.MainWindow MainWindow { get; init; }
+        //PromptWindow?
+
+        public IUndoStack<RuleSetCollection> UndoStack; //The main thing the UI should be interfacing with.
+
+        //The updated version of the grammar
+        private GrammarBuilder.MergedRules MergedRules;
         private TraceryNet.Grammar Grammar;
 
         //Outputting messages
@@ -61,7 +68,7 @@ namespace TraceryPlugin
                 }
                 else
                 {
-                    if (RawReader.TryRead(out Out))
+                    if (RawReader.TryRead(out Out!))
                     {
                         NextAvailable = DateTime.Now + TimeSpan.FromMilliseconds(MinDelayMS);
                         return true;
@@ -75,24 +82,22 @@ namespace TraceryPlugin
         }
         private DelayedReader MessageSource;
 
-        public Plugin(
-            [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface
-        )
+        public Plugin()
         {
-            this.Common = new XivCommonBase(pluginInterface);
-            this.Configuration = DalamudPluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-            this.Configuration.Initialize(DalamudPluginInterface);
-            this.Grammar = new TraceryNet.Grammar(this.Configuration.BaseGrammar);
+            this.Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            if (this.Configuration.RuleSets.Count == 0)
+            {
+                this.Configuration.RuleSets = Configuration.GetDefaultRules();
+            }
+            this.MergedRules = new GrammarBuilder.MergedRules(this.Configuration.RuleSets);
+            this.Grammar = new Grammar(this.MergedRules.GetResult().ForGrammar());
             // you might normally want to embed resources and load them from the manifest stream
-            this.PluginUi = new PluginUI(this.Configuration, this);
+            //this.PluginUi = new PluginUI(this.Configuration, this);
 
             CommandManager.AddHandler(commandName, new CommandInfo(OnCommand)
             {
                 HelpMessage = "Opens the Tracery Plugin GUI, executes a subcommand, or with another text string flattens it."
             });
-
-            DalamudPluginInterface.UiBuilder.Draw += DrawUI;
-            DalamudPluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
 
             this.MessageSink = Channel.CreateUnbounded<string>();
             this.MessageSource = new DelayedReader(this.MessageSink.Reader);
@@ -101,22 +106,38 @@ namespace TraceryPlugin
             ClientState.Login += this.OnLogin;
             ClientState.Logout += this.OnLogout;
 
+            UndoStack = new(Configuration.RuleSets, (RuleSetCollection Collection) => UpdateGrammar());
+
+            MainWindow = new MainWindow(this);
+            WindowSystem.AddWindow(MainWindow);
+
+            PluginInterface.UiBuilder.Draw += DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
+            PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
         }
 
         public void Dispose()
         {
+            WindowSystem.RemoveAllWindows();
+            MainWindow.Dispose();
+
             Framework.Update -= this.OnFrameworkUpdate;
             ClientState.Login -= this.OnLogin;
             ClientState.Logout -= this.OnLogout;
-            
+
             CommandManager.RemoveHandler(commandName);
-            this.PluginUi.Dispose();
+            //this.PluginUi.Dispose();
         }
 
-        public void ResetGrammar()
+        public void UpdateGrammar()
         {
-            this.Grammar = new TraceryNet.Grammar(this.Configuration.BaseGrammar);
-            this.Grammar.SaveData = new Dictionary<string, string>(this.Configuration.SavedItems);
+            this.MergedRules = new GrammarBuilder.MergedRules(Configuration.RuleSets);
+            this.Grammar = new Grammar(MergedRules.GetResult().ForGrammar());
+        }
+
+        public void ClearSavedItems()
+        {
+            this.Grammar.SaveData.Clear();
         }
 
         private void OnCommand(string command, string args)
@@ -125,12 +146,12 @@ namespace TraceryPlugin
             string trimmed = args.Trim().ToLower();
             if (trimmed.Length == 0)
             {
-                this.PluginUi.Visible = true;
+                ToggleMainUI();
             }
             // check for special subcommands
             else if (trimmed == "reset")
             {
-                ResetGrammar();
+                ClearSavedItems();
             }
             // otherwise, flatten.
             else
@@ -149,12 +170,12 @@ namespace TraceryPlugin
         }
         public void OnFrameworkUpdate(IFramework framework1)
         {
-            if (!this.MessageSource.TryRead(out var Message) || !this.ChatAvailable) 
+            if (!this.MessageSource.TryRead(out var message) || !this.ChatAvailable)
             //Check availability afterwards, to clear unsendable messages
             {
                 return;
             }
-            this.Common.Functions.Chat.SendMessage(Message);
+            ChatSender.SendMessage(message);
         }
 
         private void OnLogin()
@@ -162,18 +183,13 @@ namespace TraceryPlugin
             this.ChatAvailable = true;
         }
 
-        private void OnLogout()
+        private void OnLogout(int type, int code)
         {
             this.ChatAvailable = false;
         }
-        private void DrawUI()
-        {
-            this.PluginUi.Draw();
-        }
-        
-        private void DrawConfigUI()
-        {
-            this.PluginUi.Visible = true;
-        }
+
+        private void DrawUI() => WindowSystem.Draw();
+        public void ToggleConfigUI() => MainWindow.Toggle();
+        public void ToggleMainUI() => MainWindow.Toggle();
     }
 }
