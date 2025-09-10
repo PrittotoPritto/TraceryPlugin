@@ -118,6 +118,10 @@ namespace TraceryPlugin
 
         public void Dispose()
         {
+            PluginInterface.UiBuilder.Draw -= DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUI;
+            PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUI;
+
             WindowSystem.RemoveAllWindows();
             MainWindow.Dispose();
 

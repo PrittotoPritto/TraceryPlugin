@@ -34,8 +34,8 @@ namespace TraceryPlugin.GrammarBuilder
     [Serializable]
     public class RuleSet //Not calling this a Grammar to avoid confusion with Tracery
     {
-        public const uint RuleNameLength = 32;
-        public const uint ItemLength = 256;
+        public const int RuleNameLength = 32;
+        public const int ItemLength = 256;
         public static readonly string ExtraItemsPathMarker = "__EXTRA_ITEMS__";
 
         public string Name = "";

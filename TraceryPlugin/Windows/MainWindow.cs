@@ -7,7 +7,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Lumina.Data.Files.Excel;
 using TraceryPlugin.GrammarBuilder;
 using TraceryPlugin.GrammarBuilder.Commands;
@@ -306,7 +306,7 @@ namespace TraceryPlugin.Windows
                 }
             }
         }
-        private string? CreateTextInput(string id, string baseValue, uint length = RuleSet.RuleNameLength)
+        private string? CreateTextInput(string id, string baseValue, int length = RuleSet.RuleNameLength)
         {
             //We want to return a value when:
             //  The user presses enter when editing this text box
