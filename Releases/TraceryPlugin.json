@@ -2,7 +2,7 @@
   "Author": "Prittoto Pritto",
   "Name": "Prittoto Pritto's Tracery Plugin",
   "InternalName": "TraceryPlugin",
-  "AssemblyVersion": "0.0.0.1",
+  "AssemblyVersion": "1.0.0.3",
   "Description": "/Trace to bring up the UI or give it a string to flatten. See Tracery.io for more on what it can do.",
   "ApplicableVersion": "any",
   "Tags": [
